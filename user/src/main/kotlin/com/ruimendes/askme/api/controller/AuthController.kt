@@ -2,20 +2,26 @@ package com.ruimendes.askme.api.controller
 
 import com.ruimendes.askme.api.dto.AuthenticatedUserDto
 import com.ruimendes.askme.api.dto.LoginRequest
+import com.ruimendes.askme.api.dto.RefreshRequest
 import com.ruimendes.askme.api.dto.RegisterRequest
 import com.ruimendes.askme.api.dto.UserDto
 import com.ruimendes.askme.api.mappers.toAuthenticatedUserDto
 import com.ruimendes.askme.api.mappers.toUserDto
 import com.ruimendes.askme.service.auth.AuthService
+import com.ruimendes.askme.service.auth.EmailVerificationService
 import jakarta.validation.Valid
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/auth")
-class AuthController(private val authService: AuthService) {
+class AuthController(private val authService: AuthService,
+                     private val emailVerificationService: EmailVerificationService
+) {
 
     @PostMapping("/register")
     fun register(
@@ -30,7 +36,7 @@ class AuthController(private val authService: AuthService) {
             .toUserDto()
     }
 
-    @PostMapping("login")
+    @PostMapping("/login")
     fun login(
         @RequestBody body: LoginRequest
     ): AuthenticatedUserDto {
@@ -38,5 +44,21 @@ class AuthController(private val authService: AuthService) {
             email = body.email,
             password = body.password
         ).toAuthenticatedUserDto()
+    }
+
+    @PostMapping("/refresh")
+    fun refresh(
+        @RequestBody body: RefreshRequest
+    ): AuthenticatedUserDto {
+        return authService
+            .refresh(body.refreshToken)
+            .toAuthenticatedUserDto()
+    }
+
+    @GetMapping("/verify")
+    fun verifyEmail(
+        @RequestParam token: String,
+    ) {
+        emailVerificationService.verifyEmail(token)
     }
 }

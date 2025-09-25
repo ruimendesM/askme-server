@@ -1,5 +1,6 @@
 package com.ruimendes.askme.api.exception
 
+import com.ruimendes.askme.domain.exception.EmailNotVerifiedException
 import com.ruimendes.askme.domain.exception.InvalidCredentialsException
 import com.ruimendes.askme.domain.exception.InvalidTokenException
 import com.ruimendes.askme.domain.exception.UserAlreadyExistsException
@@ -47,6 +48,15 @@ class AuthExceptionHandler {
         e: InvalidCredentialsException
     ) = mapOf(
         "code" to "INVALID_CREDENTIALS",
+        "message" to e.message
+    )
+
+    @ExceptionHandler(EmailNotVerifiedException::class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    fun onEmailNotVerified(
+        e: EmailNotVerifiedException
+    ) = mapOf(
+        "code" to "EMAIL_NOT_VERIFIED",
         "message" to e.message
     )
 
