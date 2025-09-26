@@ -2,8 +2,8 @@ package com.ruimendes.askme.api.dto
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.ruimendes.askme.api.util.Password
 import jakarta.validation.constraints.Email
-import jakarta.validation.constraints.Pattern
 import org.hibernate.validator.constraints.Length
 
 data class RegisterRequest @JsonCreator constructor(
@@ -13,10 +13,7 @@ data class RegisterRequest @JsonCreator constructor(
     @field:Length(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
     @JsonProperty("username")
     val username: String,
-    @field:Pattern(
-        regexp = "^(?=.*[\\d!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?])(.{8,})$",
-        message = "Password must be at least 8 characters and contain at least one digit or special character"
-    )
+    @field:Password
     @JsonProperty("password")
     val password: String
 )
