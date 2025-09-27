@@ -1,23 +1,35 @@
 package com.ruimendes.askme.api.controller
 
+import com.ruimendes.askme.api.config.IpRateLimit
 import com.ruimendes.askme.api.dto.*
 import com.ruimendes.askme.api.mappers.toAuthenticatedUserDto
 import com.ruimendes.askme.api.mappers.toUserDto
+import com.ruimendes.askme.api.util.requestUserId
+import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.infra.rate_limiting.EmailRateLimiter
 import com.ruimendes.askme.service.auth.AuthService
 import com.ruimendes.askme.service.auth.EmailVerificationService
 import com.ruimendes.askme.service.auth.PasswordResetService
 import jakarta.validation.Valid
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
+import java.util.concurrent.TimeUnit
 
 @RestController
 @RequestMapping("/api/auth")
 class AuthController(
     private val authService: AuthService,
     private val emailVerificationService: EmailVerificationService,
-    private val passwordResetService: PasswordResetService
+    private val passwordResetService: PasswordResetService,
+    private val emailRateLimiter: EmailRateLimiter
 ) {
 
     @PostMapping("/register")
+    @IpRateLimit(
+        requests = 10,
+        duration = 1L,
+        unit = TimeUnit.HOURS
+    )
     fun register(
         @Valid @RequestBody body: RegisterRequest
     ): UserDto {
@@ -31,6 +43,11 @@ class AuthController(
     }
 
     @PostMapping("/login")
+    @IpRateLimit(
+        requests = 10,
+        duration = 1L,
+        unit = TimeUnit.HOURS
+    )
     fun login(
         @RequestBody body: LoginRequest
     ): AuthenticatedUserDto {
@@ -41,12 +58,31 @@ class AuthController(
     }
 
     @PostMapping("/refresh")
+    @IpRateLimit(
+        requests = 10,
+        duration = 1L,
+        unit = TimeUnit.HOURS
+    )
     fun refresh(
         @RequestBody body: RefreshRequest
     ): AuthenticatedUserDto {
         return authService
             .refresh(body.refreshToken)
             .toAuthenticatedUserDto()
+    }
+
+    @PostMapping("/resend-verification")
+    @IpRateLimit(
+        requests = 10,
+        duration = 1L,
+        unit = TimeUnit.HOURS
+    )
+    fun resendVerification(
+        @Valid @RequestBody body: EmailRequest
+    ) {
+        emailRateLimiter.withRateLimit(email = body.email) {
+            emailVerificationService.resendVerificationEmail(body.email)
+        }
     }
 
     @GetMapping("/verify")
@@ -57,6 +93,11 @@ class AuthController(
     }
 
     @PostMapping("/forgot-password")
+    @IpRateLimit(
+        requests = 10,
+        duration = 1L,
+        unit = TimeUnit.HOURS
+    )
     fun forgotPassword(
         @Valid @RequestBody body: EmailRequest
     ) {
@@ -77,6 +118,10 @@ class AuthController(
     fun changePassword(
         @Valid @RequestBody body: ChangePasswordRequest
     ) {
-        // TODO: extract user id and call service
+        passwordResetService.changePassword(
+            userId = requestUserId,
+            oldPassword = body.oldPassword,
+            newPassword = body.newPassword
+        )
     }
 }

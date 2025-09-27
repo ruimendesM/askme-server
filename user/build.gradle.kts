@@ -14,6 +14,7 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
 
     implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.spring.boot.starter.data.redis)
 
     implementation(libs.jwt.api)
     runtimeOnly(libs.jwt.impl)

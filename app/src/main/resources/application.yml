@@ -2,6 +2,14 @@ spring:
   application:
     name: askme
 
+  data:
+    redis:
+      host: "redis-14232.c328.europe-west3-1.gce.redns.redis-cloud.com"
+      password: ${REDIS_PASSWORD}
+      username: "default"
+      port: 14232
+      connect-timeout: 5000ms
+      timeout: 2000ms
 
   datasource:
     url: jdbc:postgresql://db.dlhcflruahfzcvnggnsj.supabase.co:5432/postgres
@@ -42,3 +50,10 @@ askme:
       expiry-hours: 24
     reset-password:
       expiry-minutes: 30
+
+nginx:
+  trusted-ips:
+    - "127.0.0.1" # nginx on the same machine
+    - "::1" # localhost ipv6
+    - "172.17.0.0/16" # nginx container IP when using Docker
+    - "10.0.0.5/32" # nginx server IP (if separate machine)

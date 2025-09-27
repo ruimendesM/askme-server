@@ -21,6 +21,10 @@ class EmailVerificationService(
     @param:Value("\${askme.email.verification.expiry-hours}") private val expiryHours: Long
 ) {
 
+    fun resendVerificationEmail(email: String) {
+        // TODO: Implement email sending logic
+    }
+
     @Transactional
     fun createVerificationToken(email: String): EmailVerificationToken {
         val userEntity = userRepository.findByEmail(email)

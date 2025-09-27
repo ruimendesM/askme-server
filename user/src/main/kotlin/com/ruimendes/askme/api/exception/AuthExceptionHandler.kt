@@ -3,7 +3,9 @@ package com.ruimendes.askme.api.exception
 import com.ruimendes.askme.domain.exception.EmailNotVerifiedException
 import com.ruimendes.askme.domain.exception.InvalidCredentialsException
 import com.ruimendes.askme.domain.exception.InvalidTokenException
+import com.ruimendes.askme.domain.exception.RateLimitException
 import com.ruimendes.askme.domain.exception.SamePasswordException
+import com.ruimendes.askme.domain.exception.UnauthorizedException
 import com.ruimendes.askme.domain.exception.UserAlreadyExistsException
 import com.ruimendes.askme.domain.exception.UserNotFoundException
 import org.springframework.http.HttpStatus
@@ -67,6 +69,24 @@ class AuthExceptionHandler {
         e: SamePasswordException
     ) = mapOf(
         "code" to "SAME_PASSWORD",
+        "message" to e.message
+    )
+
+    @ExceptionHandler(RateLimitException::class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    fun onRateLimitException(
+        e: RateLimitException
+    ) = mapOf(
+        "code" to "RATE_LIMIT_EXCEEDED",
+        "message" to e.message
+    )
+
+    @ExceptionHandler(UnauthorizedException::class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    fun onRateLimitException(
+        e: UnauthorizedException
+    ) = mapOf(
+        "code" to "UNAUTHORIZED",
         "message" to e.message
     )
 
