@@ -1,6 +1,6 @@
 package com.ruimendes.askme.api.dto
 
-import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.domain.type.UserId
 
 data class UserDto(
     val id: UserId,

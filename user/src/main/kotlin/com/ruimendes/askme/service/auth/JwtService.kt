@@ -1,7 +1,7 @@
 package com.ruimendes.askme.service.auth
 
 import com.ruimendes.askme.domain.exception.InvalidTokenException
-import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.domain.type.UserId
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys

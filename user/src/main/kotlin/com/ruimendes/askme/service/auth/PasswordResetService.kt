@@ -4,7 +4,7 @@ import com.ruimendes.askme.domain.exception.InvalidCredentialsException
 import com.ruimendes.askme.domain.exception.InvalidTokenException
 import com.ruimendes.askme.domain.exception.SamePasswordException
 import com.ruimendes.askme.domain.exception.UserNotFoundException
-import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.domain.type.UserId
 import com.ruimendes.askme.infra.database.entities.PasswordResetTokenEntity
 import com.ruimendes.askme.infra.database.repository.PasswordResetTokenRepository
 import com.ruimendes.askme.infra.database.repository.RefreshTokenRepository

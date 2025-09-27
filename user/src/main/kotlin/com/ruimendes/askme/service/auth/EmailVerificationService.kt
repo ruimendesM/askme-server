@@ -1,5 +1,6 @@
 package com.ruimendes.askme.service.auth
 
+import com.ruimendes.askme.domain.events.user.UserEvent
 import com.ruimendes.askme.domain.exception.InvalidTokenException
 import com.ruimendes.askme.domain.exception.UserNotFoundException
 import com.ruimendes.askme.domain.model.EmailVerificationToken
@@ -7,6 +8,7 @@ import com.ruimendes.askme.infra.database.entities.EmailVerificationTokenEntity
 import com.ruimendes.askme.infra.database.mappers.toEmailVerificationToken
 import com.ruimendes.askme.infra.database.repository.EmailVerificationTokenRepository
 import com.ruimendes.askme.infra.database.repository.UserRepository
+import com.ruimendes.askme.infra.message_queue.EventPublisher
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
@@ -18,11 +20,26 @@ import java.time.temporal.ChronoUnit
 class EmailVerificationService(
     private val emailVerificationTokenRepository: EmailVerificationTokenRepository,
     private val userRepository: UserRepository,
-    @param:Value("\${askme.email.verification.expiry-hours}") private val expiryHours: Long
+    @param:Value("\${askme.email.verification.expiry-hours}") private val expiryHours: Long,
+    private val eventPublisher: EventPublisher
 ) {
 
+    @Transactional
     fun resendVerificationEmail(email: String) {
-        // TODO: Implement email sending logic
+        val token = createVerificationToken(email)
+
+        if (token.user.hasEmailVerified) {
+            return
+        }
+
+        eventPublisher.publish(
+            event = UserEvent.RequestResendVerification(
+                userId = token.user.id,
+                email = token.user.email,
+                username = token.user.username,
+                verificationToken = token.token
+            )
+        )
     }
 
     @Transactional

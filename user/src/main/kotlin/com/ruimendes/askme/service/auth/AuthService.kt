@@ -1,14 +1,16 @@
 package com.ruimendes.askme.service.auth
 
+import com.ruimendes.askme.domain.events.user.UserEvent
 import com.ruimendes.askme.domain.exception.*
 import com.ruimendes.askme.domain.model.AuthenticatedUser
 import com.ruimendes.askme.domain.model.User
-import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.domain.type.UserId
 import com.ruimendes.askme.infra.database.entities.RefreshTokenEntity
 import com.ruimendes.askme.infra.database.entities.UserEntity
 import com.ruimendes.askme.infra.database.mappers.toUser
 import com.ruimendes.askme.infra.database.repository.RefreshTokenRepository
 import com.ruimendes.askme.infra.database.repository.UserRepository
+import com.ruimendes.askme.infra.message_queue.EventPublisher
 import com.ruimendes.askme.infra.security.PasswordEncoder
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -23,7 +25,8 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: JwtService,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val emailVerificationService: EmailVerificationService
+    private val emailVerificationService: EmailVerificationService,
+    private val eventPublisher: EventPublisher
 ) {
 
     @Transactional
@@ -44,6 +47,15 @@ class AuthService(
 
         val token = emailVerificationService.createVerificationToken(trimmedEmail)
 
+        eventPublisher.publish(
+            event = UserEvent.Created(
+                userId = savedUser.id,
+                email = savedUser.email,
+                username = savedUser.username,
+                verificationToken = token.token
+            )
+        )
+
         return savedUser
     }
 
@@ -55,7 +67,7 @@ class AuthService(
             throw InvalidCredentialsException()
         }
 
-        if(!user.hasVerifiedEmail) {
+        if (!user.hasVerifiedEmail) {
             throw EmailNotVerifiedException()
         }
 

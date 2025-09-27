@@ -1,6 +1,6 @@
 package com.ruimendes.askme.infra.database.entities
 
-import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.domain.type.UserId
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue

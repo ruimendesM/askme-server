@@ -1,8 +1,6 @@
 package com.ruimendes.askme.domain.model
 
-import java.util.UUID
-
-typealias UserId = UUID
+import com.ruimendes.askme.domain.type.UserId
 
 data class User(
     val id: UserId,

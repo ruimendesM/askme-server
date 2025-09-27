@@ -1,6 +1,6 @@
 package com.ruimendes.askme.infra.database.repository
 
-import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.domain.type.UserId
 import com.ruimendes.askme.infra.database.entities.RefreshTokenEntity
 import org.springframework.data.jpa.repository.JpaRepository
 

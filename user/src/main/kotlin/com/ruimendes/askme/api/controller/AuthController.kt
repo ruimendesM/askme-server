@@ -5,7 +5,7 @@ import com.ruimendes.askme.api.dto.*
 import com.ruimendes.askme.api.mappers.toAuthenticatedUserDto
 import com.ruimendes.askme.api.mappers.toUserDto
 import com.ruimendes.askme.api.util.requestUserId
-import com.ruimendes.askme.domain.model.UserId
+import com.ruimendes.askme.domain.type.UserId
 import com.ruimendes.askme.infra.rate_limiting.EmailRateLimiter
 import com.ruimendes.askme.service.auth.AuthService
 import com.ruimendes.askme.service.auth.EmailVerificationService
