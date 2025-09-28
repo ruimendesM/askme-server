@@ -2,6 +2,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  mail:
+    host: smtp.mailgun.org
+    username: askme@sandbox0a0ffc268386452db8be7ab95d80a931.mailgun.org # TODO needs to be updated for production - sandbox key
 
 jwt:
   expiration-minutes: 15
@@ -10,6 +13,8 @@ nginx:
   require-proxy: true
 
 askme:
+  email:
+    url: "" # TODO needs to be updated for production
   rate-limit:
     ip:
       apply-limit: true

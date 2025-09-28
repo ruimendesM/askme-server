@@ -1,5 +1,6 @@
 package com.ruimendes.askme.service.auth
 
+import com.ruimendes.askme.domain.events.user.UserEvent
 import com.ruimendes.askme.domain.exception.InvalidCredentialsException
 import com.ruimendes.askme.domain.exception.InvalidTokenException
 import com.ruimendes.askme.domain.exception.SamePasswordException
@@ -9,6 +10,7 @@ import com.ruimendes.askme.infra.database.entities.PasswordResetTokenEntity
 import com.ruimendes.askme.infra.database.repository.PasswordResetTokenRepository
 import com.ruimendes.askme.infra.database.repository.RefreshTokenRepository
 import com.ruimendes.askme.infra.database.repository.UserRepository
+import com.ruimendes.askme.infra.message_queue.EventPublisher
 import com.ruimendes.askme.infra.security.PasswordEncoder
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
@@ -25,7 +27,8 @@ class PasswordResetService(
     private val passwordEncoder: PasswordEncoder,
     @param:Value("\${askme.email.reset-password.expiry-minutes}")
     private val expiryMinutes: Long,
-    private val refreshTokenRepository: RefreshTokenRepository
+    private val refreshTokenRepository: RefreshTokenRepository,
+    private val eventPublisher: EventPublisher
 ) {
 
     @Transactional
@@ -40,7 +43,15 @@ class PasswordResetService(
         )
         passwordResetTokenRepository.save(token)
 
-        // TODO: Inform notification service about password reset trigger to send email
+        eventPublisher.publish(
+            event = UserEvent.RequestResetPassword(
+                userId = user.id!!,
+                email = user.email,
+                username = user.username,
+                verificationToken = token.token,
+                expiresInMinutes = expiryMinutes
+            )
+        )
     }
 
     @Transactional
