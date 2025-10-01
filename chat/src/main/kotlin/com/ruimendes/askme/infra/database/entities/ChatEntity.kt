@@ -3,6 +3,8 @@ package com.ruimendes.askme.infra.database.entities
 import com.ruimendes.askme.domain.type.ChatId
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import java.time.Instant
 
 @Entity
@@ -38,6 +40,7 @@ class ChatEntity(
             )
         ]
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     var participants: MutableSet<ChatParticipantEntity> = mutableSetOf(),
     @CreationTimestamp
     var createdAt: Instant = Instant.now(),

@@ -4,6 +4,8 @@ import com.ruimendes.askme.domain.type.ChatId
 import com.ruimendes.askme.domain.type.ChatMessageId
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import java.time.Instant
 
 @Entity
@@ -27,10 +29,11 @@ class ChatMessageEntity(
     var chatId: ChatId,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_id", nullable = false, insertable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     var chat: ChatEntity? = null,
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "sender_id", nullable = false, insertable = false, updatable = false)
-    var sender: ChatParticipantEntity? = null,
+    var sender: ChatParticipantEntity,
     @CreationTimestamp
     var createdAt: Instant = Instant.now(),
 )
