@@ -2,8 +2,9 @@ package com.ruimendes.askme.infra.repositories
 
 import com.ruimendes.askme.domain.type.ChatId
 import com.ruimendes.askme.domain.type.ChatMessageId
+import com.ruimendes.askme.infra.database.entities.ChatEntity
 import com.ruimendes.askme.infra.database.entities.ChatMessageEntity
-import org.springframework.boot.data.autoconfigure.web.SpringDataWebProperties.Pageable
+import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -39,4 +40,6 @@ interface ChatMessageRepository: JpaRepository<ChatMessageEntity, ChatMessageId>
     fun findLatestMessagesByChatIds(
         chatIds: Set<ChatId>,
     ): List<ChatMessageEntity>
+
+    fun chat(chat: ChatEntity): MutableList<ChatMessageEntity>
 }

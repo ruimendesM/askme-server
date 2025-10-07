@@ -2,22 +2,57 @@ package com.ruimendes.askme.api.controllers
 
 import com.ruimendes.askme.api.dto.AddParticipantToChatRequest
 import com.ruimendes.askme.api.dto.ChatDto
+import com.ruimendes.askme.api.dto.ChatMessageDto
 import com.ruimendes.askme.api.dto.CreateChatRequest
 import com.ruimendes.askme.api.mappers.toChatDto
 import com.ruimendes.askme.api.util.requestUserId
 import com.ruimendes.askme.domain.type.ChatId
 import com.ruimendes.askme.service.ChatService
 import jakarta.validation.Valid
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.*
+import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
 
 @RestController
 @RequestMapping("/api/chat")
-class ChatController(private val chatService: ChatService) {
+class ChatController(
+    private val chatService: ChatService
+) {
+
+    companion object {
+        private const val DEFAULT_PAGE_SIZE = 20
+    }
+
+    @GetMapping("/{chatId}/messages")
+    fun getMessagesForChat(
+        @PathVariable("chatId") chatId: ChatId,
+        @RequestParam("before", required = false) before: Instant? = null,
+        @RequestParam("pageSize", required = false) pageSize: Int = DEFAULT_PAGE_SIZE,
+    ): List<ChatMessageDto> {
+        return chatService.getChatMessages(
+            chatId = chatId,
+            before = before,
+            pageSize = pageSize
+        )
+    }
+
+    @GetMapping
+    fun getChatsForUser(): List<ChatDto> {
+        return chatService.findChatsByUser(
+            userId = requestUserId
+        ).map { it.toChatDto() }
+    }
+
+    @GetMapping("/{chatId}")
+    fun getChat(
+        @PathVariable("chatId") chatId: ChatId
+    ): ChatDto {
+        return chatService.getChatById(
+            chatId = chatId,
+            requestUserId = requestUserId
+        )?.toChatDto() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+    }
 
     @PostMapping
     fun createChat(

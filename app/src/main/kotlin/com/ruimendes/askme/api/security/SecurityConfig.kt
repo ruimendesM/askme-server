@@ -1,4 +1,4 @@
-package com.ruimendes.askme.security
+package com.ruimendes.askme.api.security
 
 import com.ruimendes.askme.api.config.JwtAuthFilter
 import jakarta.servlet.DispatcherType

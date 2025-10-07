@@ -1,4 +1,4 @@
-package com.ruimendes.askme.mappers
+package com.ruimendes.askme.api.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
