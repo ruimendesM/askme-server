@@ -1,6 +1,6 @@
 package com.ruimendes.askme.api.config
 
-import com.ruimendes.askme.service.auth.JwtService
+import com.ruimendes.askme.service.JwtService
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse

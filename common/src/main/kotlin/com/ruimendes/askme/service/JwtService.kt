@@ -1,4 +1,4 @@
-package com.ruimendes.askme.service.auth
+package com.ruimendes.askme.service
 
 import com.ruimendes.askme.domain.exception.InvalidTokenException
 import com.ruimendes.askme.domain.type.UserId

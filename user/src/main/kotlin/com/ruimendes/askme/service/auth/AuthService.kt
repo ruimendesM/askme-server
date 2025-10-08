@@ -12,6 +12,7 @@ import com.ruimendes.askme.infra.database.repository.RefreshTokenRepository
 import com.ruimendes.askme.infra.database.repository.UserRepository
 import com.ruimendes.askme.infra.message_queue.EventPublisher
 import com.ruimendes.askme.infra.security.PasswordEncoder
+import com.ruimendes.askme.service.JwtService
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
