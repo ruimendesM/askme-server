@@ -32,7 +32,7 @@ class ChatMessageEntity(
     @OnDelete(action = OnDeleteAction.CASCADE)
     var chat: ChatEntity? = null,
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "sender_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "sender_id", nullable = false)
     var sender: ChatParticipantEntity,
     @CreationTimestamp
     var createdAt: Instant = Instant.now(),

@@ -18,3 +18,10 @@ askme:
   rate-limit:
     ip:
       apply-limit: false
+  web-socket:
+    allowed-origin: "http://localhost:8080"
+
+
+logging:
+  level:
+    com.ruimendes.askme: DEBUG

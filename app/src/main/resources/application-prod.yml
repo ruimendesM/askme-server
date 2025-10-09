@@ -18,3 +18,6 @@ askme:
   rate-limit:
     ip:
       apply-limit: true
+  web-socket:
+    allowed-origins:
+      - "" # TODO needs to be updated for production

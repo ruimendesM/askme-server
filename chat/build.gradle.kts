@@ -14,6 +14,8 @@ dependencies {
     implementation(libs.spring.boot.starter.amqp)
     implementation(libs.spring.boot.starter.websocket)
 
+    implementation(libs.jackson.datatype.jsr310)
+
     implementation(libs.spring.boot.starter.data.jpa)
 
     runtimeOnly(libs.postgresql)
