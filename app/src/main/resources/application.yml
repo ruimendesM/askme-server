@@ -89,3 +89,7 @@ nginx:
     - "::1" # localhost ipv6
     - "172.17.0.0/16" # nginx container IP when using Docker
     - "10.0.0.5/32" # nginx server IP (if separate machine)
+
+supabase:
+  url: "https://dlhcflruahfzcvnggnsj.supabase.co"
+  service-key: ${SUPABASE_SERVICE_KEY}

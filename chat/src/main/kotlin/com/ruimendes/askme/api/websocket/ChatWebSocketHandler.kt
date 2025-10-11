@@ -8,6 +8,7 @@ import com.ruimendes.askme.api.mappers.toChatMessageDto
 import com.ruimendes.askme.domain.event.ChatParticipantLeftEvent
 import com.ruimendes.askme.domain.event.ChatParticipantsJoinedEvent
 import com.ruimendes.askme.domain.event.MessageDeletedEvent
+import com.ruimendes.askme.domain.event.ProfilePictureUpdatedEvent
 import com.ruimendes.askme.domain.type.ChatId
 import com.ruimendes.askme.domain.type.UserId
 import com.ruimendes.askme.service.ChatMessageService
@@ -285,6 +286,48 @@ class ChatWebSocketHandler(
                 payload = jsonMapper.writeValueAsString(ChatParticipantsChangedDto(event.chatId))
             )
         )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onProfilePictureUpdated(event: ProfilePictureUpdatedEvent) {
+        val userChats = connectionLock.read {
+            userChatIds[event.userId]?.toList() ?: emptyList()
+        }
+
+        val dto = ProfilePictureUpdateDto(
+            userId = event.userId,
+            newUrl = event.newUrl
+        )
+
+        val sessionIds = mutableSetOf<String>()
+        userChats.forEach { chatId ->
+            connectionLock.read {
+                chatToSessions[chatId]?.let { sessions ->
+                    sessionIds.addAll(sessions)
+                }
+            }
+        }
+
+        val webSocketMessage = OutgoingWebSocketMessage(
+            type = OutgoingWebSocketMessageType.PROFILE_PICTURE_UPDATED,
+            payload = jsonMapper.writeValueAsString(dto)
+        )
+
+        val messageJson = jsonMapper.writeValueAsString(webSocketMessage)
+
+        sessionIds.forEach { sessionId ->
+            val userSession = connectionLock.read {
+                sessions[sessionId]
+            } ?: return@forEach
+
+            try {
+                if (userSession.session.isOpen) {
+                    userSession.session.sendMessage(TextMessage(messageJson))
+                }
+            } catch (e: Exception) {
+                logger.error("Could not send profile picture update to session $sessionId", e)
+            }
+        }
     }
 
     private fun sendError(
