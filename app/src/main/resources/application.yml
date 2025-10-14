@@ -93,3 +93,6 @@ nginx:
 supabase:
   url: "https://dlhcflruahfzcvnggnsj.supabase.co"
   service-key: ${SUPABASE_SERVICE_KEY}
+
+firebase:
+  credentials-path: "classpath:firebase-credentials/askme-firebase-adminsdk.json"
