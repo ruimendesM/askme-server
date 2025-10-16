@@ -30,7 +30,7 @@ class DeviceTokenController(private val pushNotificationService: PushNotificatio
     }
 
     @DeleteMapping("/{token}")
-    fun uregisterDeviceToken(
+    fun unregisterDeviceToken(
         @PathVariable("token") token: String
     ) {
         pushNotificationService.unregisterDevice(token)
