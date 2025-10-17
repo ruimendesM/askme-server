@@ -48,6 +48,8 @@ class IpResolver(
     fun getClientIp(request: HttpServletRequest): String {
         val remoteAddr = request.remoteAddr
 
+        logger.warn("Remote address: $remoteAddr")
+
         if (!isFromTrustedProxy(remoteAddr)) {
             if (nginxConfig.requireProxy) {
                 logger.warn("Direct connection attempt from $remoteAddr")
@@ -55,6 +57,8 @@ class IpResolver(
             }
             return remoteAddr
         }
+
+        logger.warn("Is from trusted proxy: $remoteAddr. Going to extract client IP from headers")
 
         val clientIp = extractFromXRealIp(request, remoteAddr)
 
@@ -73,6 +77,7 @@ class IpResolver(
         proxyIp: String
     ): String? {
         return request.getHeader("X-Real-IP")?.let { header ->
+            logger.warn("Header found X-Real-IP: $header from proxy $proxyIp")
             validateAndNormalizeIp(header, "X-Real-IP", proxyIp)
         } ?: run {
             logger.warn("X-Real-IP header not found from proxy $proxyIp")
@@ -84,7 +89,7 @@ class IpResolver(
         val trimmedIp = ip.trim()
 
         if (trimmedIp.isBlank() || INVALID_IPS.contains(trimmedIp)) {
-            logger.debug("Invalid IP in $headerName: $ip from proxy $proxyIp")
+            logger.warn("Invalid IP in $headerName: $ip from proxy $proxyIp")
             return null
         }
 
@@ -102,7 +107,7 @@ class IpResolver(
 
             }
             if (isPrivateIp(inetAddress.hostAddress)) {
-                logger.debug("Private IP in $headerName: $trimmedIp from proxy $proxyIp")
+                logger.warn("Private IP in $headerName: $trimmedIp from proxy $proxyIp")
             }
 
             inetAddress.hostAddress
