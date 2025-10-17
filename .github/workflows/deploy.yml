@@ -3,7 +3,7 @@ name: Deploy AskMe Backend
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
