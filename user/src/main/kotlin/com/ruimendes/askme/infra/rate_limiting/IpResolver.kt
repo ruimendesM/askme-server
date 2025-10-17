@@ -33,14 +33,14 @@ class IpResolver(
 
     private val logger = LoggerFactory.getLogger(IpResolver::class.java)
 
-    private val trustedMatchers: List<IpAddressMatcher> = nginxConfig
+    private val trustedMatchers = nginxConfig
         .trustedIps
         .filter { it.isNotBlank() }
         .map { proxy ->
             val cidr = when {
-                proxy.contains("/") -> proxy
-                proxy.contains(":") -> "$proxy/128"
-                else -> "$proxy/32"
+                proxy.contains("/") -> proxy // Already has CIDR: "192.168.1.0/24"
+                proxy.count { it == ':' } >= 2 -> "$proxy/128" // IPv6: "2001:db8::1" → "2001:db8::1/128"
+                else -> "$proxy/32" // IPv4: "192.168.1.1" → "192.168.1.1/32"
             }
             IpAddressMatcher(cidr)
         }
@@ -74,6 +74,9 @@ class IpResolver(
     ): String? {
         return request.getHeader("X-Real-IP")?.let { header ->
             validateAndNormalizeIp(header, "X-Real-IP", proxyIp)
+        } ?: run {
+            logger.warn("X-Real-IP header not found from proxy $proxyIp")
+            null
         }
     }
 
