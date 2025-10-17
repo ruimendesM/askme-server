@@ -19,5 +19,4 @@ askme:
     ip:
       apply-limit: true
   web-socket:
-    allowed-origins:
-      - "https://askme.ruimendesdev.eu"
+    allowed-origin: "https://askme.ruimendesdev.eu"
