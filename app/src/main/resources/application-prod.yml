@@ -4,7 +4,7 @@ spring:
       ddl-auto: validate
   mail:
     host: smtp.mailgun.org
-    username: askme@sandbox0a0ffc268386452db8be7ab95d80a931.mailgun.org # TODO needs to be updated for production - sandbox key
+    username: askme@sandbox0a0ffc268386452db8be7ab95d80a931.mailgun.org # TODO needs to be updated - sandbox key
 
 jwt:
   expiration-minutes: 15
@@ -14,10 +14,10 @@ nginx:
 
 askme:
   email:
-    url: "" # TODO needs to be updated for production
+    url: "https://askme.ruimendesdev.eu"
   rate-limit:
     ip:
       apply-limit: true
   web-socket:
     allowed-origins:
-      - "" # TODO needs to be updated for production
+      - "https://askme.ruimendesdev.eu"

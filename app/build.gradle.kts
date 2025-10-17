@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.tasks.bundling.BootJar
+
 plugins {
     id("askme.spring-boot-app")
 }
@@ -5,6 +7,18 @@ plugins {
 group = "com.ruimendes"
 version = "0.0.1-SNAPSHOT"
 description = "Ask Me backend"
+
+tasks {
+    // Make sure resources from other resoruces are included in the final jar
+    named<BootJar>("bootJar") {
+        from(project(":notification").projectDir.resolve("src/main/resources")) {
+            into("")
+        }
+        from(project(":user").projectDir.resolve("src/main/resources")) {
+            into("")
+        }
+    }
+}
 
 dependencies {
     implementation(projects.chat)
