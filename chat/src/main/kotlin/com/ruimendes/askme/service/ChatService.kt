@@ -2,6 +2,7 @@ package com.ruimendes.askme.service
 
 import com.ruimendes.askme.api.dto.ChatMessageDto
 import com.ruimendes.askme.api.mappers.toChatMessageDto
+import com.ruimendes.askme.domain.event.ChatCreatedEvent
 import com.ruimendes.askme.domain.event.ChatParticipantLeftEvent
 import com.ruimendes.askme.domain.event.ChatParticipantsJoinedEvent
 import com.ruimendes.askme.domain.exception.ChatNotFoundException
@@ -93,12 +94,19 @@ class ChatService(
         val creator = chatParticipantRepository.findByIdOrNull(creatorId)
             ?: throw ChatParticipantNotFoundException(creatorId)
 
-        return chatRepository.save(
+        return chatRepository.saveAndFlush(
             ChatEntity(
                 creator = creator,
                 participants = mutableSetOf(creator).apply { addAll(otherParticipants) }
             )
-        ).toChat()
+        ).toChat().also { entity ->
+            applicationEventPublisher.publishEvent(
+                ChatCreatedEvent(
+                    chatId = entity.id,
+                    participantsIds = entity.participants.map { it.userId }
+                )
+            )
+        }
     }
 
     @Transactional

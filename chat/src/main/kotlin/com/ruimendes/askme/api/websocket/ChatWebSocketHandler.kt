@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.ruimendes.askme.api.dto.ws.*
 import com.ruimendes.askme.api.mappers.toChatMessageDto
+import com.ruimendes.askme.domain.event.ChatCreatedEvent
 import com.ruimendes.askme.domain.event.ChatParticipantLeftEvent
 import com.ruimendes.askme.domain.event.ChatParticipantsJoinedEvent
 import com.ruimendes.askme.domain.event.MessageDeletedEvent
@@ -234,23 +235,19 @@ class ChatWebSocketHandler(
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onChatCreated(event: ChatCreatedEvent) {
+        updateChatForUsers(
+            chatId = event.chatId,
+            userIds = event.participantsIds
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onJoinChat(event: ChatParticipantsJoinedEvent) {
-        connectionLock.write {
-            event.userIds.forEach { userId ->
-                userChatIds.compute(userId) { _, chatIds ->
-                    (chatIds ?: mutableSetOf()).apply {
-                        add(event.chatId)
-                    }
-                }
-                userToSessions[userId]?.forEach { sessionId ->
-                    chatToSessions.compute(event.chatId) { _, sessions ->
-                        (sessions ?: mutableSetOf()).apply {
-                            add(sessionId)
-                        }
-                    }
-                }
-            }
-        }
+        updateChatForUsers(
+            chatId = event.chatId,
+            userIds = event.userIds.toList()
+        )
 
         broadcastToChat(
             chatId = event.chatId,
@@ -345,6 +342,28 @@ class ChatWebSocketHandler(
             session.sendMessage(TextMessage(webSocketMessage))
         } catch (e: Exception) {
             logger.warn("Couldn't send error message", e)
+        }
+    }
+
+    private fun updateChatForUsers(
+        chatId: ChatId,
+        userIds: List<UserId>
+    ) {
+        connectionLock.write {
+            userIds.forEach { userId ->
+                userChatIds.compute(userId) { _, chatIds ->
+                    (chatIds ?: mutableSetOf()).apply {
+                        add(chatId)
+                    }
+                }
+                userToSessions[userId]?.forEach { sessionId ->
+                    chatToSessions.compute(chatId) { _, sessions ->
+                        (sessions ?: mutableSetOf()).apply {
+                            add(sessionId)
+                        }
+                    }
+                }
+            }
         }
     }
 
