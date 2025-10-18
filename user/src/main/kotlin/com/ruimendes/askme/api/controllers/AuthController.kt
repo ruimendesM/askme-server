@@ -55,6 +55,13 @@ class AuthController(
         ).toAuthenticatedUserDto()
     }
 
+    @PostMapping("/logout")
+    fun logout(
+        @RequestBody body: RefreshRequest
+    ) {
+        authService.logout(body.refreshToken)
+    }
+
     @PostMapping("/refresh")
     @IpRateLimit(
         requests = 10,
