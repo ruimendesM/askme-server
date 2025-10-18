@@ -48,8 +48,6 @@ class IpResolver(
     fun getClientIp(request: HttpServletRequest): String {
         val remoteAddr = request.remoteAddr
 
-        logger.warn("Remote address: $remoteAddr")
-
         if (!isFromTrustedProxy(remoteAddr)) {
             if (nginxConfig.requireProxy) {
                 logger.warn("Direct connection attempt from $remoteAddr")
@@ -62,7 +60,7 @@ class IpResolver(
 
         val clientIp = extractFromXRealIp(request, remoteAddr)
 
-        if (clientIp != null) {
+        if (clientIp == null) {
             logger.warn("No valid client IP in proxy headers")
             if (nginxConfig.requireProxy) {
                 throw SecurityException("No valid client IP in proxy headers")
@@ -77,7 +75,6 @@ class IpResolver(
         proxyIp: String
     ): String? {
         return request.getHeader("X-Real-IP")?.let { header ->
-            logger.warn("Header found X-Real-IP: $header from proxy $proxyIp")
             validateAndNormalizeIp(header, "X-Real-IP", proxyIp)
         } ?: run {
             logger.warn("X-Real-IP header not found from proxy $proxyIp")
@@ -97,6 +94,7 @@ class IpResolver(
             val inetAddress = when {
                 trimmedIp.contains(":") -> Inet6Address.getByName(trimmedIp)
                 trimmedIp.matches(Regex("\\d+\\.\\d+\\.\\d+\\.\\d+")) -> {
+                    logger.warn("IPv4 address: $trimmedIp")
                     Inet4Address.getByName(trimmedIp)
                 }
 
