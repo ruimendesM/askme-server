@@ -2,6 +2,7 @@ package com.ruimendes.askme.api.websocket
 
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.ruimendes.askme.api.dto.ws.*
 import com.ruimendes.askme.api.mappers.toChatMessageDto
@@ -46,7 +47,9 @@ class ChatWebSocketHandler(
     }
 
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val jsonMapper = objectMapper.registerModule(JavaTimeModule())
+    private val jsonMapper = objectMapper
+        .registerModule(JavaTimeModule())
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
 
     private val connectionLock = ReentrantReadWriteLock()
 

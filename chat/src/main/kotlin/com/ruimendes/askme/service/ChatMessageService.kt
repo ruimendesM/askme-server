@@ -1,7 +1,5 @@
 package com.ruimendes.askme.service
 
-import com.ruimendes.askme.api.dto.ChatMessageDto
-import com.ruimendes.askme.api.mappers.toChatMessageDto
 import com.ruimendes.askme.domain.event.MessageDeletedEvent
 import com.ruimendes.askme.domain.events.chat.ChatEvent
 import com.ruimendes.askme.domain.exception.ChatMessageNotFoundException
@@ -21,11 +19,9 @@ import com.ruimendes.askme.infra.repositories.ChatRepository
 import jakarta.transaction.Transactional
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
-import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Service
 class ChatMessageService(
