@@ -24,8 +24,8 @@ class JwtService(
     private val accessTokenValidityMs = expirationMinutes * 60 * 1000L
     val refreshTokenValidityMs = 30 * 24 * 60 * 60 * 1000L // 30 days
 
-    fun generateAccessToken(userId: UserId): String {
-        return generateToken(userId, "access", accessTokenValidityMs)
+    fun generateAccessToken(userId: UserId, role: String): String {
+        return generateToken(userId, "access", accessTokenValidityMs, mapOf("role" to role))
     }
 
     fun generateRefreshToken(userId: UserId): String {
@@ -46,6 +46,11 @@ class JwtService(
         return tokenType == "refresh"
     }
 
+    fun getRoleFromToken(token: String): String? {
+        val claims = parseAllClaims(token) ?: return null
+        return claims["role"] as? String
+    }
+
     fun getUserIdFromToken(token: String): UserId {
         val claims = parseAllClaims(token) ?: throw InvalidTokenException("Attached JWT token is invalid.")
         return UUID.fromString(claims.subject)
@@ -54,7 +59,8 @@ class JwtService(
     private fun generateToken(
         userId: UserId,
         type: String,
-        expiry: Long
+        expiry: Long,
+        extraClaims: Map<String, Any> = emptyMap()
     ): String {
         val now = Date()
         val expiryDate = Date(now.time + expiry)
@@ -62,6 +68,7 @@ class JwtService(
         return Jwts.builder()
             .subject(userId.toString())
             .claim("type", type)
+            .also { builder -> extraClaims.forEach { (k, v) -> builder.claim(k, v) } }
             .issuedAt(now)
             .expiration(expiryDate)
             .signWith(secretKey, Jwts.SIG.HS256)

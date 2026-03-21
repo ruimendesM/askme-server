@@ -113,7 +113,7 @@ class AuthService(
     private fun UserEntity.generateTokensAndCreateAuthenticatedUser(): AuthenticatedUser {
         val userId = id ?: throw UserNotFoundException()
 
-        val accessToken = jwtService.generateAccessToken(userId)
+        val accessToken = jwtService.generateAccessToken(userId, role = "USER")
         val refreshToken = jwtService.generateRefreshToken(userId)
 
         storeRefreshToken(userId, refreshToken)
