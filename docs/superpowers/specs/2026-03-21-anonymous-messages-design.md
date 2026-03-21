@@ -14,12 +14,13 @@ Extend the Spring Boot chat server to allow anonymous (non-registered) users to 
 - Messages are one-way: admin cannot reply
 - Admin sees anonymous messages in a separate inbox (not mixed with normal chats)
 - New messages are pushed to the admin in real-time via WebSocket when they are connected
-- Rate limiting: IP-based + email format validation on the submit endpoint
-- Admin-only access to the inbox enforced via JWT username claim (`hasAuthority("admin")`)
+- Rate limiting: IP-based (5 requests per 10 minutes per IP) on the submit endpoint
+- Email format validated via `@Email` on the request DTO
+- Admin-only access to the inbox enforced via a `role` JWT claim (`hasAuthority("ADMIN")`)
 
 ## Architecture
 
-The feature lives entirely within the existing `chat` module, following its layered architecture: domain → infra (entity/repository/mapper) → service → api (dto/mapper/controller/websocket).
+The feature lives entirely within the existing `chat` module, following its layered architecture: domain → infra (entity/repository/mapper) → service → api (dto/mapper/controller/websocket). JWT changes touch `common` and `user` modules.
 
 ---
 
@@ -35,18 +36,30 @@ content: String
 createdAt: Instant
 ```
 
+`AnonymousMessageId` is a typealias for `UUID`, defined in `common/src/main/kotlin/com/ruimendes/askme/domain/type/` alongside existing ID types (`UserId`, `ChatId`, etc.).
+
 ### JPA Entity
 `infra/database/entities/AnonymousMessageEntity.kt`
 
 - Table: `chat_service.anonymous_message`
 - No foreign keys — no link to the users table
-- Index on `createdAt` for pagination performance
+- Column `sender_email VARCHAR(320)` (RFC 5321 max length for email addresses)
+- Column `content VARCHAR(2000)`
+- Index on `created_at` for pagination performance
+- Schema is managed by Hibernate `ddl-auto` in development (matching the existing project convention — no Flyway/Liquibase). In production environments, the table must be created manually via a DDL script before deployment.
 
 ### Repository
 `infra/repositories/AnonymousMessageRepository.kt`
 
 Extends `JpaRepository<AnonymousMessageEntity, AnonymousMessageId>`.
-Custom query: fetch all with cursor-based pagination (before `createdAt`), ordered descending.
+
+Custom query method, consistent with the pattern in `ChatMessageRepository.findByChatIdBefore`:
+
+```kotlin
+fun findByCreatedAtBefore(before: Instant, pageable: Pageable): Slice<AnonymousMessageEntity>
+```
+
+`pageSize` from the service is converted to a `PageRequest.of(0, pageSize, Sort.by("createdAt").descending())` pageable. When the caller passes `before = null`, the service substitutes `Instant.now()` so this single repository method handles both the initial load and subsequent pages. `findById` is built-in JPA.
 
 ### Infrastructure Mapper
 `infra/mappers/AnonymousMessageMappers.kt`
@@ -60,10 +73,13 @@ Custom query: fetch all with cursor-based pagination (before `createdAt`), order
 
 `service/AnonymousMessageService.kt`
 
+All write methods are `@Transactional`. `sendMessage` must be transactional to ensure the `@TransactionalEventListener(AFTER_COMMIT)` in the WebSocket handler fires only after the row is committed.
+
 | Method | Description |
 |--------|-------------|
-| `sendMessage(senderEmail: String, content: String): AnonymousMessage` | Validates email format, persists entity, publishes `AnonymousMessageReceivedEvent` |
-| `getMessages(before: Instant?, pageSize: Int): List<AnonymousMessage>` | Paginated fetch for admin inbox, ordered by `createdAt` desc |
+| `sendMessage(senderEmail: String, content: String): AnonymousMessage` | Persists entity, publishes `AnonymousMessageReceivedEvent` via `applicationEventPublisher`. Email and content validation is handled by Bean Validation at the controller layer before this method is called. |
+| `getMessages(before: Instant?, pageSize: Int = 20): List<AnonymousMessage>` | Paginated fetch. Default page size 20, max 100. Uses `findByCreatedAtBefore` with `Pageable` when `before` is provided, or fetches the latest page when `before` is null. Returns `List` (extracted from `Slice`). |
+| `getById(id: AnonymousMessageId): AnonymousMessage` | Fetch single message by ID — used by the WebSocket handler after the event fires. If the ID is not found, logs a warning and returns null; the caller silently skips broadcast. Non-throwing behaviour is required here because this runs inside a `@TransactionalEventListener` where unhandled exceptions would be swallowed by the event infrastructure anyway. |
 
 ### Domain Event
 `domain/event/AnonymousMessageReceivedEvent.kt`
@@ -72,7 +88,7 @@ Custom query: fetch all with cursor-based pagination (before `createdAt`), order
 messageId: AnonymousMessageId
 ```
 
-Published via Spring `ApplicationEventPublisher` after the transaction commits. Consumed by `ChatWebSocketHandler` to push real-time notifications to the admin.
+This is an **in-process Spring `ApplicationEventPublisher` event** — the same kind as `ChatCreatedEvent`, `MessageDeletedEvent`, etc. It is NOT published via RabbitMQ / the `EventPublisher` used for cross-module events. The event carries only the ID to avoid transporting detached JPA objects across the transaction boundary (consistent with existing events).
 
 ---
 
@@ -84,10 +100,16 @@ Published via Spring `ApplicationEventPublisher` after the transaction commits. 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `POST` | `/api/anonymous-messages` | Public | Submit anonymous message |
-| `GET` | `/api/anonymous-messages` | `hasAuthority("admin")` | Fetch admin inbox (paginated) |
+| `GET` | `/api/anonymous-messages` | `hasAuthority("ADMIN")` | Fetch admin inbox (paginated) |
 
-**POST** returns `201 Created` with no body.
-**GET** accepts optional query params `before: Instant?` and `pageSize: Int?`.
+**POST** — accepts `@Valid @RequestBody CreateAnonymousMessageRequest`. Returns `201 Created` with no body on success.
+
+- Bean Validation failure (`@Email`, `@NotBlank`, `@Size`) produces `400 Bad Request` via Spring Boot's default `MethodArgumentNotValidException` handling. A new `@ExceptionHandler(MethodArgumentNotValidException::class)` must be added to `CommonExceptionHandler` to produce a response consistent with the project's `{ "code": ..., "message": ... }` error format.
+- Rate limit exceeded returns `429 Too Many Requests` (existing `@IpRateLimit` behaviour).
+
+Apply `@IpRateLimit(requests = 5, duration = 10, unit = TimeUnit.MINUTES)` to the `POST` handler method.
+
+**GET** — query params: `before: Instant?` (ISO-8601 timestamp, optional) and `pageSize: Int?` (optional, default 20, capped at 100). Returns `200 OK` with `List<AnonymousMessageDto>`. No next-page cursor in the response — cursor is the `createdAt` of the last item in the returned list, matching the existing chat message pagination pattern. When `before` is absent, the service passes `Instant.now()` as the sentinel value to retrieve the most recent page.
 
 ### DTOs
 `api/dto/AnonymousMessageDto.kt`
@@ -100,9 +122,11 @@ createdAt: Instant
 
 `api/dto/CreateAnonymousMessageRequest.kt`
 ```
-senderEmail: String  // @Email validation
-content: String      // @NotBlank, reasonable max length
+senderEmail: String   // @Email, @Size(max = 320)
+content: String       // @NotBlank, @Size(max = 2000)
 ```
+
+`senderEmail` is trimmed and lowercased before persistence to normalise equivalent addresses.
 
 ### API Mapper
 `api/mappers/AnonymousMessageDtoMappers.kt`
@@ -111,11 +135,12 @@ content: String      // @NotBlank, reasonable max length
 ### Security Config Update
 `app/.../SecurityConfig.kt`
 
-- Add `POST /api/anonymous-messages` to `permitAll()`
-- Add `GET /api/anonymous-messages` with `.hasAuthority("admin")`
+New matchers must be inserted **before** the existing `anyRequest().authenticated()` catch-all (Spring Security evaluates rules in declaration order):
 
-### Rate Limiting
-IP-based rate limiting applied to `POST /api/anonymous-messages` at the controller level, consistent with existing rate limiting patterns in the app.
+```kotlin
+.requestMatchers(HttpMethod.POST, "/api/anonymous-messages").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/anonymous-messages").hasAuthority("ADMIN")
+```
 
 ---
 
@@ -125,15 +150,22 @@ IP-based rate limiting applied to `POST /api/anonymous-messages` at the controll
 Add `NEW_ANONYMOUS_MESSAGE` to `OutgoingWebSocketMessageType` in `api/dto/ws/WebSocketEvent.kt`.
 
 ### Handler Extension
-`ChatWebSocketHandler` gains one new `@TransactionalEventListener`:
+`ChatWebSocketHandler` gains one new `@TransactionalEventListener(phase = AFTER_COMMIT)`:
 
 ```
 onAnonymousMessage(AnonymousMessageReceivedEvent)
 ```
 
-- Loads `AnonymousMessage` from `AnonymousMessageService`
-- Maps to `AnonymousMessageDto`
-- Broadcasts `NEW_ANONYMOUS_MESSAGE` frame **only** to the admin's WebSocket sessions (looked up by admin's `UserId` in the existing `userToSessions` map)
+Steps:
+1. Call `anonymousMessageService.getById(event.messageId)` — if null, log and return
+2. Map to `AnonymousMessageDto` via the API mapper
+3. Construct `OutgoingWebSocketMessage(type = NEW_ANONYMOUS_MESSAGE, payload = jsonMapper.writeValueAsString(dto))`
+4. Serialise the wrapper: `jsonMapper.writeValueAsString(outgoingMessage)`
+5. Send the resulting string to the admin's sessions via `userToSessions[adminUserId]`
+
+This two-step serialisation (DTO → JSON string as payload, then the whole message → JSON string) matches the existing pattern used by all other event handlers in `ChatWebSocketHandler`.
+
+**Admin session lookup:** The admin's `UserId` is injected from `@ConfigurationProperties` class `AdminProperties(userId: UserId)` bound to prefix `admin` in `application.yml`. This class is annotated with `@Validated` and `@NotNull` on `userId` so a missing or invalid value fails fast at startup with a clear error. `UserId` is a plain `UUID` typealias; Spring Boot's `@ConfigurationProperties` binds `UUID` from a string by default — no custom converter is needed. `AdminProperties.userId` is the same `UserId` type used as the key in `userToSessions: HashMap<UserId, MutableSet<String>>`, so the lookup is a direct key match with no type conversion. If the admin is not connected, the event is silently dropped (consistent with existing offline-user behaviour).
 
 No new WebSocket endpoint or handler needed.
 
@@ -141,19 +173,23 @@ No new WebSocket endpoint or handler needed.
 
 ## Section 5: JWT Evolution
 
-Three small changes to add username as a JWT claim, enabling Spring Security authority-based admin checks.
-
 ### `JwtService` (common module)
-- `generateAccessToken(userId: UserId, username: String)` — adds `"username"` as a JWT claim
+- `generateAccessToken(userId: UserId, role: String)` — adds `"role"` as a JWT claim (value: `"ADMIN"` or `"USER"`)
 
 ### `AuthService` (user module)
-- Update `generateAccessToken` call site to pass the user's `username`
+The single shared helper `UserEntity.generateTokensAndCreateAuthenticatedUser()` (line 113 in `AuthService.kt`) is the **only call site** that needs updating — both `login` and `refresh` call this helper and no other token issuance paths exist. Update this helper to derive the role (`if (username == "admin") "ADMIN" else "USER"`) and pass it to `generateAccessToken`. Any live refresh token issued before this change will still produce a correct role-bearing access token on the next refresh, since the refresh path also goes through this helper.
 
 ### `JwtAuthFilter` (user module)
-- After extracting `userId`, read the `"username"` claim
-- Construct `UsernamePasswordAuthenticationToken` with `listOf(SimpleGrantedAuthority(username))` instead of `emptyList()`
+- After extracting `userId`, read the `"role"` claim
+- If the claim is present: `UsernamePasswordAuthenticationToken(userId, null, listOf(SimpleGrantedAuthority(role)))`
+- If the claim is absent (existing tokens issued before this change): `UsernamePasswordAuthenticationToken(userId, null, emptyList())` — graceful degradation, no regression
+- Existing tokens remain valid but carry no authority until they expire or the user calls refresh. No forced logout.
 
-This enables `hasAuthority("admin")` in Spring Security config without DB lookups in the auth filter.
+---
+
+## Section 6: Admin Identity
+
+The admin account is a pre-seeded user with unique username `"admin"`. Its `UserId` (UUID) is configured in `application.yml` under the `admin.user-id` property. This is bound via `AdminProperties` (see Section 4) and validated at startup. If the admin account is recreated in a new environment, this config value must be updated.
 
 ---
 
