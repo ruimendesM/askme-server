@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.ruimendes.askme.api.dto.ws.*
+import com.ruimendes.askme.api.mappers.toAnonymousMessageDto
 import com.ruimendes.askme.api.mappers.toChatMessageDto
+import com.ruimendes.askme.domain.event.AnonymousMessageReceivedEvent
 import com.ruimendes.askme.domain.event.ChatCreatedEvent
 import com.ruimendes.askme.domain.event.ChatParticipantLeftEvent
 import com.ruimendes.askme.domain.event.ChatParticipantsJoinedEvent
@@ -13,10 +15,12 @@ import com.ruimendes.askme.domain.event.MessageDeletedEvent
 import com.ruimendes.askme.domain.event.ProfilePictureUpdatedEvent
 import com.ruimendes.askme.domain.type.ChatId
 import com.ruimendes.askme.domain.type.UserId
+import com.ruimendes.askme.service.AnonymousMessageService
 import com.ruimendes.askme.service.ChatMessageService
 import com.ruimendes.askme.service.ChatService
 import com.ruimendes.askme.service.JwtService
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -38,7 +42,9 @@ class ChatWebSocketHandler(
     private val chatMessageService: ChatMessageService,
     objectMapper: ObjectMapper,
     private val chatService: ChatService,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val anonymousMessageService: AnonymousMessageService,
+    @param:Value("\${admin.user-id}") private val adminUserId: UserId
 ) : TextWebSocketHandler() {
 
     companion object {
@@ -328,6 +334,22 @@ class ChatWebSocketHandler(
                 logger.error("Could not send profile picture update to session $sessionId", e)
             }
         }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onAnonymousMessage(event: AnonymousMessageReceivedEvent) {
+        val message = anonymousMessageService.getById(event.messageId) ?: run {
+            logger.warn("Could not find anonymous message ${event.messageId} for WebSocket broadcast — skipping")
+            return
+        }
+
+        sendToUser(
+            userId = adminUserId,
+            message = OutgoingWebSocketMessage(
+                type = OutgoingWebSocketMessageType.NEW_ANONYMOUS_MESSAGE,
+                payload = jsonMapper.writeValueAsString(message.toAnonymousMessageDto())
+            )
+        )
     }
 
     private fun sendError(

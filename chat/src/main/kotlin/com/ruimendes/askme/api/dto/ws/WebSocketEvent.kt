@@ -9,6 +9,7 @@ enum class OutgoingWebSocketMessageType {
     MESSAGE_DELETED,
     PROFILE_PICTURE_UPDATED,
     CHAT_PARTICIPANTS_CHANGED,
+    NEW_ANONYMOUS_MESSAGE,
     ERROR
 }
 
