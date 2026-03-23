@@ -8,6 +8,7 @@ import com.ruimendes.askme.domain.exception.InvalidChatSizeException
 import com.ruimendes.askme.domain.exception.InvalidProfilePictureException
 import com.ruimendes.askme.domain.exception.StorageException
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -45,5 +46,12 @@ class ChatExceptionHandler {
     fun onStoreException(e: StorageException) = mapOf(
         "code" to "STORAGE_ERROR",
         "message" to e.message
+    )
+
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun onValidationError(e: MethodArgumentNotValidException) = mapOf(
+        "code" to "VALIDATION_ERROR",
+        "message" to (e.bindingResult.fieldErrors.firstOrNull()?.defaultMessage ?: "Validation failed")
     )
 }
