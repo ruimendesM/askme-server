@@ -96,3 +96,6 @@ supabase:
 
 firebase:
   credentials-path: "classpath:firebase-credentials/askme-firebase-adminsdk.json"
+
+admin:
+  user-id: ${ADMIN_USER_ID}

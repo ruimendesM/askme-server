@@ -21,6 +21,8 @@ dependencies {
     runtimeOnly(libs.postgresql)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.mockito.kotlin)
 }
 
 tasks.test {

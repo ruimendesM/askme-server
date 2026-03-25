@@ -4,6 +4,7 @@ import com.ruimendes.askme.api.config.JwtAuthFilter
 import jakarta.servlet.DispatcherType
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -25,6 +26,10 @@ class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/auth/change-password")
                     .authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/anonymous-messages")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/anonymous-messages")
+                    .hasAuthority("ADMIN")
                     .dispatcherTypeMatchers(
                         DispatcherType.ERROR,
                         DispatcherType.FORWARD
