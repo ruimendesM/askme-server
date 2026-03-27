@@ -20,6 +20,8 @@ askme:
       apply-limit: false
   web-socket:
     allowed-origin: "http://localhost:8080"
+  cors:
+    allowed-origin: "http://localhost:5173"
 
 
 logging:
