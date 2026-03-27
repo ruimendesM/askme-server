@@ -76,8 +76,6 @@ jwt:
   secret: ${JWT_SECRET_BASE64}
 
 askme:
-  cors:
-    allowed-origin: "http://localhost:5173"
   email:
     from: mail@askme-rui.com
     verification:
