@@ -41,3 +41,4 @@ out/
 
 app/src/main/resources/firebase-credentials
 docs/superpowers/
+.worktrees/
