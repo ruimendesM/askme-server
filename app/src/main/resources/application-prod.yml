@@ -20,3 +20,5 @@ askme:
       apply-limit: true
   web-socket:
     allowed-origin: "https://askme.ruimendesdev.eu"
+  cors:
+    allowed-origin: "https://askme.ruimendesdev.eu"

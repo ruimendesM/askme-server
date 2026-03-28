@@ -34,6 +34,9 @@ dependencies {
     implementation(libs.spring.boot.starter.amqp)
     implementation(libs.spring.boot.starter.mail)
     runtimeOnly(libs.postgresql)
+
+    testImplementation(libs.spring.security.test)
+    testImplementation(libs.mockito.kotlin)
 }
 
 kotlin {
