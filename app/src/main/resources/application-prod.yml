@@ -21,4 +21,4 @@ askme:
   web-socket:
     allowed-origin: "https://askme.ruimendesdev.eu"
   cors:
-    allowed-origin: "https://askme.ruimendesdev.eu"
+    allowed-origin: "https://ruimendesdev.eu"
