@@ -52,12 +52,12 @@ spring:
             enable: true
 
   rabbitmq:
-    host: dog.lmq.cloudamqp.com
+    host: seal.lmq.cloudamqp.com
     password: ${RABBITMQ_PASSWORD}
-    username: bgzyivcp
+    username: ywwjxuun
     ssl:
       enabled: true
-    virtual-host: bgzyivcp
+    virtual-host: ywwjxuun
     listener:
       simple:
         acknowledge-mode: auto
