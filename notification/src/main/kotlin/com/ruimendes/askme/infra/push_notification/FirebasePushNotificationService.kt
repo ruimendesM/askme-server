@@ -62,6 +62,14 @@ class FirebasePushNotificationService(
     }
 
     fun sendNotification(notification: PushNotification): PushNotificationSendResult {
+        if (notification.recipients.isEmpty()) {
+            return PushNotificationSendResult(
+                succeeded = emptyList(),
+                temporaryFailures = emptyList(),
+                permanentFailures = emptyList()
+            )
+        }
+
         val messages = notification.recipients.map { recipient ->
             Message.builder()
                 .setToken(recipient.token)

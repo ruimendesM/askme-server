@@ -80,15 +80,13 @@ class PushNotificationService(
         message: String,
         chatId: ChatId
     ) {
-        val deviceTokens = deviceTokenRepository.findByUserIdIn(recipientUserIds)
-        if (deviceTokens.isEmpty()) {
-            logger.info("No device tokens found for users: $recipientUserIds")
-            return
-        }
-
-        val recipients = deviceTokens
+        val recipients = deviceTokenRepository.findByUserIdIn(recipientUserIds)
             .filter { it.userId != senderUserId }
             .map { it.toDeviceToken() }
+        if (recipients.isEmpty()) {
+            logger.debug("No device tokens found for recipients of chat {}", chatId)
+            return
+        }
 
         val notification = PushNotification(
             title = "New message from $senderUsername", // TODO this should be localized
